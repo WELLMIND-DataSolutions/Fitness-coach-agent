@@ -1,0 +1,24 @@
+# Secrets — kabhi commit mat karo
+.env
+
+# Database — personal user data
+fitness.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
