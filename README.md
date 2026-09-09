@@ -40,14 +40,7 @@ The project is built around a clean separation of concerns: a stateless chat UI,
 - **JWT authentication** — registration, login, and bcrypt password hashing protect every chat session
 - **Clean Markdown-rendered chat UI** — tables, lists, and formatting render properly in the React frontend
 
-## Application Preview
 
-<!-- Replace the placeholder below with an actual screenshot of your app's main chat screen. -->
-<!-- Suggested path once added: ./assets/app-screenshot.png -->
-
-![FitCoach main screen — replace with your actual screenshot](./assets/app-screenshot.png)
-
-*Add a screenshot of the FitCoach chat interface at `assets/app-screenshot.png` — capture the running app at `http://localhost:5173` (or your deployed URL) and save it there.*
 
 ## System Architecture
 
