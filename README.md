@@ -93,8 +93,3 @@ This project is provided as-is for personal and educational use.
 
 ---
 
-<p align="center">
-  <a href="https://your-live-demo-url.com">
-    <img src="https://img.shields.io/badge/Try%20the%20Live%20Demo-2f6fb0?style=for-the-badge" alt="Live Demo" />
-  </a>
-</p>
