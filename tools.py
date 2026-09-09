@@ -1,31 +1,36 @@
 """
 tools.py — asli kaam karne wale functions.
-Ye functions database.py use karte hain data save/read karne ke liye.
-Har function ek "tool" hai jo agent Groq API ke zariye call karega.
+UPDATED: har function ab 'user_id' leta hai (pehla parameter) taake
+data sirf usi user ka read/write ho jiska ye request hai.
+NOTE: user_id LLM ko schema mein kabhi nahi dikhta — ye agent.py se
+automatically bind hota hai (dekho agent.py mein functools.partial).
 """
 
 from datetime import date
 from database import get_connection
 
 
-def set_profile(name, age, gender, height_cm, weight_kg, goal, activity_level):
+def set_profile(user_id, name, age, gender, height_cm, weight_kg, goal, activity_level):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("DELETE FROM profile")
+    c.execute("DELETE FROM profile WHERE user_id=?", (user_id,))
     c.execute(
-        """INSERT INTO profile (id, name, age, gender, height_cm, weight_kg, goal, activity_level)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?)""",
-        (name, age, gender, height_cm, weight_kg, goal, activity_level),
+        """INSERT INTO profile (user_id, name, age, gender, height_cm, weight_kg, goal, activity_level)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, name, age, gender, height_cm, weight_kg, goal, activity_level),
     )
     conn.commit()
     conn.close()
     return {"status": "saved", "name": name, "goal": goal}
 
 
-def get_profile():
+def get_profile(user_id):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT name, age, gender, height_cm, weight_kg, goal, activity_level FROM profile WHERE id=1")
+    c.execute(
+        "SELECT name, age, gender, height_cm, weight_kg, goal, activity_level FROM profile WHERE user_id=?",
+        (user_id,),
+    )
     row = c.fetchone()
     conn.close()
     if not row:
@@ -34,8 +39,6 @@ def get_profile():
     keys = ["name", "age", "gender", "height_cm", "weight_kg", "goal", "activity_level"]
     profile = dict(zip(keys, row))
 
-    # FIX 1: partial/corrupt row se aane wale None values ko yahin catch karo,
-    # taake baad mein calculate_calories() jaise functions .lower() pe crash na karein.
     required_fields = ["name", "age", "gender", "height_cm", "weight_kg", "goal", "activity_level"]
     missing = [f for f in required_fields if profile.get(f) in (None, "")]
     if missing:
@@ -44,8 +47,8 @@ def get_profile():
     return profile
 
 
-def calculate_calories():
-    p = get_profile()
+def calculate_calories(user_id):
+    p = get_profile(user_id)
     if "error" in p:
         return p
 
@@ -78,8 +81,8 @@ def calculate_calories():
     }
 
 
-def generate_workout_plan(goal=None, days_per_week=4):
-    p = get_profile()
+def generate_workout_plan(user_id, goal=None, days_per_week=4):
+    p = get_profile(user_id)
     goal = (goal or (p.get("goal") if "error" not in p else "general fitness")).lower()
 
     templates = {
@@ -106,18 +109,13 @@ def generate_workout_plan(goal=None, days_per_week=4):
     key = "loss" if "loss" in goal else "muscle" if ("muscle" in goal or "gain" in goal) else "general"
     base_plan = templates[key]
 
-    # FIX 2: days_per_week ko 1-4 ke range mein clamp karo. Sirf 4 unique day-templates
-    # available hain, is se zyada maangne par pehle wale din repeat nahi honge —
-    # bas jitne available hain utne hi return honge (silently duplicate karne se better).
     days_per_week = max(1, min(int(days_per_week or 4), len(base_plan)))
     plan = base_plan[:days_per_week]
 
     return {"goal": goal, "days_per_week": days_per_week, "plan": [{"day": d, "exercises": e} for d, e in plan]}
 
 
-def log_workout(exercise, sets, reps, weight_kg=0):
-    # FIX 3: light input validation — LLM se aane wale tool-call arguments par
-    # blindly trust nahi karte. Bounds check karke garbage data DB mein jaane se rokte hain.
+def log_workout(user_id, exercise, sets, reps, weight_kg=0):
     if not exercise or not str(exercise).strip():
         return {"error": "Exercise ka naam khali nahi ho sakta."}
     try:
@@ -137,16 +135,15 @@ def log_workout(exercise, sets, reps, weight_kg=0):
     conn = get_connection()
     c = conn.cursor()
     c.execute(
-        "INSERT INTO workout_log (date, exercise, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?)",
-        (str(date.today()), exercise.strip(), sets, reps, weight_kg),
+        "INSERT INTO workout_log (user_id, date, exercise, sets, reps, weight_kg) VALUES (?, ?, ?, ?, ?, ?)",
+        (user_id, str(date.today()), exercise.strip(), sets, reps, weight_kg),
     )
     conn.commit()
     conn.close()
     return {"status": "logged", "exercise": exercise, "date": str(date.today())}
 
 
-def log_meal(food, calories):
-    # FIX 3 (continued): negative/unrealistic calories reject karo.
+def log_meal(user_id, food, calories):
     if not food or not str(food).strip():
         return {"error": "Food ka naam khali nahi ho sakta."}
     try:
@@ -159,14 +156,16 @@ def log_meal(food, calories):
 
     conn = get_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO meal_log (date, food, calories) VALUES (?, ?, ?)", (str(date.today()), food.strip(), calories))
+    c.execute(
+        "INSERT INTO meal_log (user_id, date, food, calories) VALUES (?, ?, ?, ?)",
+        (user_id, str(date.today()), food.strip(), calories),
+    )
     conn.commit()
     conn.close()
     return {"status": "logged", "food": food, "calories": calories}
 
 
-def log_weight(weight_kg):
-    # FIX 3 (continued): realistic human weight range check.
+def log_weight(user_id, weight_kg):
     try:
         weight_kg = float(weight_kg)
     except (TypeError, ValueError):
@@ -177,23 +176,32 @@ def log_weight(weight_kg):
 
     conn = get_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO weight_log (date, weight_kg) VALUES (?, ?)", (str(date.today()), weight_kg))
+    c.execute(
+        "INSERT INTO weight_log (user_id, date, weight_kg) VALUES (?, ?, ?)",
+        (user_id, str(date.today()), weight_kg),
+    )
     conn.commit()
     conn.close()
     return {"status": "logged", "weight_kg": weight_kg, "date": str(date.today())}
 
 
-def get_progress_summary():
+def get_progress_summary(user_id):
     conn = get_connection()
     c = conn.cursor()
 
-    c.execute("SELECT date, weight_kg FROM weight_log ORDER BY date")
+    c.execute("SELECT date, weight_kg FROM weight_log WHERE user_id=? ORDER BY date", (user_id,))
     weights = c.fetchall()
 
-    c.execute("SELECT date, SUM(calories) FROM meal_log GROUP BY date ORDER BY date DESC LIMIT 7")
+    c.execute(
+        "SELECT date, SUM(calories) FROM meal_log WHERE user_id=? GROUP BY date ORDER BY date DESC LIMIT 7",
+        (user_id,),
+    )
     calories_last7 = c.fetchall()
 
-    c.execute("SELECT COUNT(*) FROM workout_log WHERE date >= date('now', '-7 days')")
+    c.execute(
+        "SELECT COUNT(*) FROM workout_log WHERE user_id=? AND date >= date('now', '-7 days')",
+        (user_id,),
+    )
     workouts_last7 = c.fetchone()[0]
 
     conn.close()
@@ -204,7 +212,7 @@ def get_progress_summary():
     }
 
 
-def set_reminder(time_str, message):
+def set_reminder(user_id, time_str, message):
     if not time_str or not str(time_str).strip():
         return {"error": "time_str khali nahi ho sakta."}
     if not message or not str(message).strip():
@@ -212,7 +220,10 @@ def set_reminder(time_str, message):
 
     conn = get_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO reminders (time, message) VALUES (?, ?)", (time_str.strip(), message.strip()))
+    c.execute(
+        "INSERT INTO reminders (user_id, time, message) VALUES (?, ?, ?)",
+        (user_id, time_str.strip(), message.strip()),
+    )
     conn.commit()
     conn.close()
     return {"status": "reminder_set", "time": time_str, "message": message}

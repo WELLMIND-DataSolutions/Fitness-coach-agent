@@ -1,11 +1,14 @@
 ﻿import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Login from "./Login";
 import "./App.css";
 
 const BACKEND_URL = "http://localhost:8000/chat";
 
 function App() {
+  const [token, setToken] = useState(() => localStorage.getItem("fitcoach_token"));
+
   const [messages, setMessages] = useState([
     {
       role: "coach",
@@ -20,6 +23,11 @@ function App() {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("fitcoach_token");
+    setToken(null);
+  };
+
   const sendMessage = async () => {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
@@ -31,9 +39,17 @@ function App() {
     try {
       const res = await fetch(BACKEND_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ message: trimmed }),
       });
+
+      if (res.status === 401) {
+        handleLogout();
+        throw new Error("Session khatam ho gayi hai — dobara login karein.");
+      }
 
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
@@ -44,7 +60,7 @@ function App() {
         ...prev,
         {
           role: "coach",
-          text: "Connection mein masla ho gaya. Backend chal raha hai ya nahi confirm karein.",
+          text: err.message || "Connection mein masla ho gaya. Backend chal raha hai ya nahi confirm karein.",
           isError: true,
         },
       ]);
@@ -60,6 +76,10 @@ function App() {
     }
   };
 
+  if (!token) {
+    return <Login onSuccess={(newToken) => setToken(newToken)} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -70,9 +90,14 @@ function App() {
             <span className="brand-sub">AI Fitness Assistant</span>
           </div>
         </div>
-        <div className="status-pill">
-          <span className="status-dot" />
-          Connected
+        <div className="header-right">
+          <div className="status-pill">
+            <span className="status-dot" />
+            Connected
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </header>
 

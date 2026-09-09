@@ -1,12 +1,13 @@
 """
-agent.py — Agent ka "brain-loop". Yahan LLM (Groq) ko call karte hain,
-tool_calls ko detect karte hain, tools.py se respective function chalate hain,
-result wapas LLM ko dete hain, jab tak final text answer na mil jaye.
-
-Koi hardcoded if-else business-logic nahi — routing sirf LLM ki reasoning se hoti hai.
+agent.py — Agent ka "brain-loop".
+UPDATED: FitCoachAgent ab per-user hai (user_id le kar banta hai).
+Har tool function us user ke user_id ke sath 'bind' hota hai
+(functools.partial se) — is se LLM ko kabhi user_id dena/dikhna
+nahi parta, aur ek user doosray ka data touch nahi kar sakta.
 """
 
 import json
+from functools import partial
 from openai import OpenAI
 
 from config import GROQ_API_KEY, GROQ_BASE_URL, MODEL_NAME, MAX_TOKENS
@@ -14,33 +15,35 @@ from system_prompt import SYSTEM_PROMPT
 from tool_schema import TOOLS
 import tools as tools_module
 
-# Groq ka endpoint OpenAI-compatible hai, isliye OpenAI client hi reuse kar sakte hain.
 client = OpenAI(api_key=GROQ_API_KEY, base_url=GROQ_BASE_URL)
 
-# tool_schema.py mein jo naam likhe hain, unko tools.py ke actual function se map karo.
-AVAILABLE_FUNCTIONS = {
-    "set_profile": tools_module.set_profile,
-    "get_profile": tools_module.get_profile,
-    "calculate_calories": tools_module.calculate_calories,
-    "generate_workout_plan": tools_module.generate_workout_plan,
-    "log_workout": tools_module.log_workout,
-    "log_meal": tools_module.log_meal,
-    "log_weight": tools_module.log_weight,
-    "get_progress_summary": tools_module.get_progress_summary,
-    "set_reminder": tools_module.set_reminder,
-}
-
-MAX_TOOL_ITERATIONS = 6  # infinite loop se bachne ke liye safety cap
+MAX_TOOL_ITERATIONS = 6
 
 
 class FitCoachAgent:
     """
-    Conversation history ko memory mein rakhta hai (single session ke liye).
-    Har `chat()` call ek user message leta hai aur final assistant reply return karta hai.
+    Ab har instance EK specific user ke liye hoti hai.
+    api.py mein user_id se keyed dictionary mein ye instances store hongi.
     """
 
-    def __init__(self):
+    def __init__(self, user_id: int):
+        self.user_id = user_id
         self.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+        # NAYA: har tool ko is user_id ke sath bind kar diya —
+        # LLM ko sirf apne schema wale arguments (name, age, exercise, etc.) dene hain,
+        # user_id kabhi uske control mein nahi hai.
+        self.available_functions = {
+            "set_profile": partial(tools_module.set_profile, user_id=user_id),
+            "get_profile": partial(tools_module.get_profile, user_id=user_id),
+            "calculate_calories": partial(tools_module.calculate_calories, user_id=user_id),
+            "generate_workout_plan": partial(tools_module.generate_workout_plan, user_id=user_id),
+            "log_workout": partial(tools_module.log_workout, user_id=user_id),
+            "log_meal": partial(tools_module.log_meal, user_id=user_id),
+            "log_weight": partial(tools_module.log_weight, user_id=user_id),
+            "get_progress_summary": partial(tools_module.get_progress_summary, user_id=user_id),
+            "set_reminder": partial(tools_module.set_reminder, user_id=user_id),
+        }
 
     def chat(self, user_message: str) -> str:
         self.messages.append({"role": "user", "content": user_message})
@@ -57,9 +60,7 @@ class FitCoachAgent:
             choice = response.choices[0]
             msg = choice.message
 
-            # LLM ne tool(s) call karne ka faisla kiya
             if msg.tool_calls:
-                # assistant ka tool_call-wala message history mein daalo
                 self.messages.append(
                     {
                         "role": "assistant",
@@ -78,7 +79,6 @@ class FitCoachAgent:
                     }
                 )
 
-                # Har tool_call ko actually run karo
                 for tc in msg.tool_calls:
                     fn_name = tc.function.name
                     try:
@@ -86,7 +86,7 @@ class FitCoachAgent:
                     except json.JSONDecodeError:
                         args = {}
 
-                    fn = AVAILABLE_FUNCTIONS.get(fn_name)
+                    fn = self.available_functions.get(fn_name)
                     if fn is None:
                         result = {"error": f"Unknown tool: {fn_name}"}
                     else:
@@ -104,13 +104,10 @@ class FitCoachAgent:
                         }
                     )
 
-                # loop continue — LLM ko tool results ke sath dobara call karo
                 continue
 
-            # Koi tool call nahi — ye final answer hai
             final_text = msg.content or ""
             self.messages.append({"role": "assistant", "content": final_text})
             return final_text
 
-        # Agar loop cap khatam ho gayi (rare edge case)
         return "Sorry, kuch process karne mein masla aa gaya. Dobara try karein."
