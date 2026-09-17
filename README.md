@@ -3,6 +3,7 @@
 **A tool-calling AI agent that acts as a personal fitness and nutrition coach — calculates calories, builds workout plans, tracks progress, and sends reminders, all through natural conversation.**
 
 
+
 ---
 
 ## Overview
