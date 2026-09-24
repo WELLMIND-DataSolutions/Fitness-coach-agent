@@ -1,24 +1,28 @@
-# Secrets — kabhi commit mat karo
+# Secrets
 .env
+.env.*
+!.env.example
 
-# Database — personal user data
-fitness.db
+# Dependencies and builds
+node_modules/
+dist/
 
-# Python cache
+# Python
 __pycache__/
-*.pyc
-*.pyo
-
-# Virtual environment
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
 venv/
-env/
 .venv/
+env/
 
-# IDE
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+
+# Editors and OS
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
-

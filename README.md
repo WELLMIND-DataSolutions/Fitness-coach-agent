@@ -1,90 +1,57 @@
-﻿# FitCoach — AI Fitness & Diet Coach
+# FitCoach
 
-**A tool-calling AI agent that acts as a personal fitness and nutrition coach — calculates calories, builds workout plans, tracks progress, and sends reminders, all through natural conversation.**
-
-
-
----
+**Your personal AI fitness and nutrition coach, in a simple chat.**
 
 ## Overview
 
-FitCoach is an AI-powered fitness and nutrition coaching agent built on a Python/FastAPI backend, a Groq-hosted LLM, and a React + Vite web frontend. Instead of static forms or fixed calculators, the user simply talks to the agent — it understands the request, decides which tool to call (calorie calculator, workout generator, progress tracker, reminder scheduler), executes real business logic against a database, and replies in natural language.
+FitCoach is a web app that works like a personal trainer you can message anytime. You create an account, tell the coach about yourself and your goal, and then just talk to it: ask how many calories you should eat, get a weekly workout plan, tell it what you ate or how you trained, check your progress, or ask it to remind you about something every day.
 
-The project is built around a clean separation of concerns: a stateless chat UI, an authenticated API layer, a per-user agent orchestrator, a business-logic tool layer, and a persistent data store — the same shape used by production LLM-agent systems.
+You can talk to it in English or Roman Urdu, the same way you would text a friend.
 
-## Problem & Our Solution
+## Aim
 
-| Problem | FitCoach's Solution |
-|---|---|
-| Generic fitness apps require manual data entry through rigid forms | A conversational interface where users describe their goals in plain language |
-| Calorie and macro calculations are confusing for most users | Automated BMR/TDEE calculation using the Mifflin-St Jeor formula, applied per-user |
-| Workout plans are often one-size-fits-all | Plans generated dynamically based on the user's stated goal and available days per week |
-| People forget to log meals, workouts, or follow through on routines | Built-in logging tools plus a background reminder scheduler that runs independently of the chat session |
-| AI fitness bots can overstep into medical advice | A strict safety protocol: the agent pauses and asks clarifying questions on any medical signal, and defers to a licensed professional instead of guessing |
-| Multi-user fitness tools often leak data across accounts | JWT-based authentication with per-user agent instances and isolated database rows |
+Many people start a fitness routine and give up within a few weeks, because tracking food and workouts feels like a chore and online advice rarely fits their situation. FitCoach aims to:
 
-## Key Features & Unique Points
+- Make tracking as easy as sending a message.
+- Give advice that fits the user's own body, goal and daily routine.
+- Base calorie and workout guidance on trusted methods, not guesswork.
+- Stay safe, by recognising health concerns and suggesting a doctor instead of giving risky advice.
 
-- **Conversational tool-calling agent** — the LLM decides in real time whether to answer directly or invoke a registered Python tool, rather than following a scripted flow
-- **Per-user isolation** — every authenticated user gets their own agent instance and tool bindings, so one user's data can never leak into another's session
-- **Calorie & macro engine** — BMR/TDEE calculated with the Mifflin-St Jeor formula, adjusted to the user's goal and activity level
-- **Dynamic workout plan generator** — weekly splits tailored to fat loss, muscle gain, or general fitness goals
-- **Progress tracking** — dedicated logs for workouts, meals, and body weight, summarized on request
-- **Independent reminder scheduler** — a background daemon thread checks and fires reminders without blocking the chat API
-- **Medical-safety guardrail** — the agent is explicitly instructed to stop, ask, and refer to a professional rather than give unsafe advice
-- **JWT authentication** — registration, login, and bcrypt password hashing protect every chat session
-- **Clean Markdown-rendered chat UI** — tables, lists, and formatting render properly in the React frontend
+## Benefits
 
+- **Easy to use:** no long forms or complicated menus; just type what you want.
+- **Personal:** every plan and number is based on your own profile and goal.
+- **Keeps track for you:** meals, workouts and weight are saved, so your progress is always one question away.
+- **Remembers you:** log out, come back tomorrow, and the coach picks up where you left off.
+- **Private:** each person's data is kept separate and protected by their own login.
+- **Safe:** it never encourages extreme dieting and points you to a professional when something sounds medical.
 
+## Key features
 
-## System Architecture
+- Chat-based coaching in English and Roman Urdu
+- Daily calorie target with protein, carbs and fat breakdown
+- Weekly workout plans for weight loss, muscle gain or general fitness (1 to 6 days a week)
+- Meal, workout and weight logging
+- Progress summary for the past week
+- Daily reminders at a time you choose
+- Health-safety checks before giving advice
+- Secure personal accounts
+- "New chat" to start fresh while keeping your saved progress
 
-![FitCoach system architecture diagram](./assets/architecture-diagram.svg)
+## Screenshots
 
-## Setup
+**Login**
 
-### Backend
+![Login screen](./assets/screenshots/login.png)
 
-```bash
-cd fitcoach
-pip install -r requirements.txt
-```
+**Dashboard**
 
-Create a `.env` file (copy `.env.example`) and add your Groq API key:
+![FitCoach dashboard with a weekly workout plan](./assets/screenshots/dashboard.png)
 
-```
-GROQ_API_KEY=your_key_here
-```
+## Architecture
 
-Run the web backend:
+![FitCoach system architecture](./assets/architecture-diagram.svg)
 
-```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
-```
+## Disclaimer
 
-Or run the CLI version:
-
-```bash
-python main.py
-```
-
-### Frontend
-
-```bash
-cd fitcoach-web
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` in your browser (make sure the backend is running on port 8000).
-
-## Conclusion
-
-FitCoach demonstrates a complete, production-shaped pattern for building an AI agent product: authenticated multi-user access, a tool-calling orchestration layer, real business logic instead of prompt-only answers, persistent storage, and a background job that runs independently of the request/response cycle. It's a practical starting point for anyone building a domain-specific AI assistant rather than a generic chatbot.
-
-## License
-
-This project is provided as-is for personal and educational use.
-
----
-
+FitCoach gives general fitness information and is not a substitute for a doctor, dietitian or certified trainer.
