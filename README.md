@@ -1,6 +1,14 @@
-# FitCoach
+﻿# FitCoach
+
+**[Live Demo](https://fitness-coach-three-blush.vercel.app)**
+
+> Note: This link shows the frontend only. The AI chat features require the backend to be running locally (see setup instructions below) -- the backend is not yet deployed.
 
 **Your personal AI fitness and nutrition coach, in a simple chat.**
+
+## Architecture
+
+![FitCoach system architecture](./assets/architecture-diagram.svg)
 
 ## Overview
 
@@ -16,15 +24,6 @@ Many people start a fitness routine and give up within a few weeks, because trac
 - Give advice that fits the user's own body, goal and daily routine.
 - Base calorie and workout guidance on trusted methods, not guesswork.
 - Stay safe, by recognising health concerns and suggesting a doctor instead of giving risky advice.
-
-## Benefits
-
-- **Easy to use:** no long forms or complicated menus; just type what you want.
-- **Personal:** every plan and number is based on your own profile and goal.
-- **Keeps track for you:** meals, workouts and weight are saved, so your progress is always one question away.
-- **Remembers you:** log out, come back tomorrow, and the coach picks up where you left off.
-- **Private:** each person's data is kept separate and protected by their own login.
-- **Safe:** it never encourages extreme dieting and points you to a professional when something sounds medical.
 
 ## Key features
 
@@ -48,9 +47,14 @@ Many people start a fitness routine and give up within a few weeks, because trac
 
 ![FitCoach dashboard with a weekly workout plan](./assets/screenshots/dashboard.png)
 
-## Architecture
+## Benefits
 
-![FitCoach system architecture](./assets/architecture-diagram.svg)
+- **Easy to use:** no long forms or complicated menus; just type what you want.
+- **Personal:** every plan and number is based on your own profile and goal.
+- **Keeps track for you:** meals, workouts and weight are saved, so your progress is always one question away.
+- **Remembers you:** log out, come back tomorrow, and the coach picks up where you left off.
+- **Private:** each person's data is kept separate and protected by their own login.
+- **Safe:** it never encourages extreme dieting and points you to a professional when something sounds medical.
 
 ## Disclaimer
 
